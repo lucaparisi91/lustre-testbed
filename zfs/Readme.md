@@ -9,6 +9,6 @@ tar -zxvf zfs-2.2.6.tar.gz
 cd zfs-2.2.6
 ./autogen.sh
 ./configure
-make -j1 rpm-utils rpm-dkms
+make -j1 rpm-utils rpm-kmod
 sudo dnf install *.$(uname -p).rpm *.noarch.rpm
 ```

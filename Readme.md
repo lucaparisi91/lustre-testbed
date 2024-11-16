@@ -1,5 +1,4 @@
 
-
 # Setting up a lustre cluster on a VM
 
 ## Disk
@@ -50,17 +49,18 @@ sudo dnf install keyutils keyutils-libs-devel libmount \
 git clone git://git.whamcloud.com/fs/lustre-release.git
 cd lustre-release
 ./autogen.sh
-./configure
+sed -i '/^SELINUX=/s/.*/SELINUX=disabled/' /etc/selinux/config 
+
+./configure --disable-ldiskfs
 make rpms
-sudo rpm -ivh ./kmod-lustre-client-2.16.0_RC3-1.el9.aarch64.rpm
-sudo rpm -ivh ./lustre-client-dkms-2.16.0_RC3-1.el9.noarch.rpm
+sudo dnf --skip-broken install *.$(uname -p).rpm
 ```
 
 ## Install on the servers
 
-## Insall on the clients
+## Install on the clients
 
 ```bash
 sudo rpm -ivh ./kmod-lustre-client-2.16.0_RC3-1.el9.aarch64.rpm
-sudo rpm -ivh ./lustre-client-dkms-2.16.0_RC3-1.el9.noarch.rpm
+#sudo rpm -ivh ./lustre-client-dkms-2.16.0_RC3-1.el9.noarch.rpm
 ```
