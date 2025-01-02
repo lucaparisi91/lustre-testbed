@@ -1,64 +1,59 @@
 
 # Setting up a lustre cluster on a VM
 
-## Disk
-
-A 30GB disk is used for the server and an additional 30GB is used for the client.
-The filesystem is mounted on `/vms/server` and `/vms/client`.
-
-```bash
-yum install autofs nfs-utils
-```
-
-
-```bash
- usermod -aG wheel lparisi
-
- ```
-
- At at the end of /etc/sudoers file add using visudo
-
- ```bash
- lparisi  ALL=(ALL) NOPASSWD:ALL
-```
+Create 3 VMs running Rocky 9.5, one for the mgs/mds server, one for the oss and one for the client.
+Each VM has 15GB disk space.
 
 ## Setting up networking
 
 The network should be configured as static network
-I used nmtui to setup the connection and set it to automount on each of the virtual machines.
-
-Each vm as a 20GB disk and an additional 5GB disk to use with lustre.
-
-ip | hostname | 
--- | --- |
-192.168.122.83 |  lmgs
-
-
-## Building lustre
 
 ```bash
-#sudo dnf config-manager  --add-repo https://uk.linaro.cloud/repo/lustre/master/el9/aarch64/
-sudo dnf groupinstall "Development Tools"
-sudo dnf config-manager --set-enabled crb
-sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-sudo dnf install keyutils keyutils-libs-devel libmount \
+nmcli con add type ethernet autoconnect yes con-name lustre_network  ifname enp0s1 ip4 192.168.64.17 gw4 192.168.64.1 ipv4.dns 192.168.64.1
+```
+
+ip | hostname
+-- | ---
+192.168.64.17 |  mgs/mdt
+
+## Build ZFS on the servers
+
+```bash
+dnf groupinstall -y "Development Tools"
+dnf config-manager -y --set-enabled crb
+dnf install -y epel-release-9 gcc make autoconf automake libtool rpm-build kernel-rpm-macros libtirpc-devel libblkid-devel libuuid-devel libudev-devel openssl-devel zlib-devel libaio-devel libattr-devel elfutils-libelf-devel kernel-devel-$(uname -r) kernel-abi-stablelists-$(uname -r | sed 's/\.[^.]\+$//') python3 python3-devel python3-setuptools python3-cffi libffi-devel
+dnf install -y  --skip-broken python3-packaging dkms
+
+wget https://github.com/openzfs/zfs/releases/download/zfs-2.2.6/zfs-2.2.6.tar.gz
+tar -zxvf zfs-2.2.6.tar.gz 
+cd zfs-2.2.6
+./autogen.sh
+./configure
+make -j1 rpm-utils rpm-kmod
+dnf install -y *.$(uname -p).rpm *.noarch.rpm
+```
+
+## Install Lustre on the servers
+
+Under the root user, install the latest lustre release from github.
+
+```bash
+dnf groupinstall -y "Development Tools" 
+dnf config-manager -y --set-enabled crb
+dnf install -y keyutils keyutils-libs-devel libmount \
                         libmount-devel libnl3-devel libnl3 libnl3-cli \
                         libyaml libyaml-devel kernel-abi-stablelists kernel-rpm-macros \
                         dkms expect python python-devel git
-
 git clone git://git.whamcloud.com/fs/lustre-release.git
 cd lustre-release
 ./autogen.sh
 sed -i '/^SELINUX=/s/.*/SELINUX=disabled/' /etc/selinux/config 
-
 ./configure --disable-ldiskfs
 make rpms
-sudo dnf --skip-broken install *.$(uname -p).rpm
+dnf --skip-broken install -y *.$(uname -p).rpm
 ```
 
-## Install on the servers
-
-## Install on the clients
+## Install Lustre on the clients
 
 ```bash
 sudo rpm -ivh ./kmod-lustre-client-2.16.0_RC3-1.el9.aarch64.rpm
