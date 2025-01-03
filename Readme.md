@@ -56,7 +56,25 @@ make rpms
 dnf --skip-broken install -y *.$(uname -p).rpm
 ```
 
-# Setting up Lustre
+## Install Lustre on the clients
+
+```bash
+dnf update -y
+dnf groupinstall -y "Development Tools" 
+dnf config-manager -y --set-enabled crb
+dnf install -y keyutils keyutils-libs-devel libmount \
+                        libmount-devel libnl3-devel libnl3 libnl3-cli \
+                        libyaml libyaml-devel kernel-abi-stablelists kernel-rpm-macros \
+                        dkms expect python python-devel git
+git clone git://git.whamcloud.com/fs/lustre-release.git
+cd lustre-release
+./autogen.sh
+sed -i '/^SELINUX=/s/.*/SELINUX=disabled/' /etc/selinux/config 
+./configure --disable-server --enable-client
+make rpms
+dnf --skip-broken install -y *.$(uname -p).rpm
+```
+## Set up the servers
 
 Create a combined mgt/mdt disk.
 
@@ -76,26 +94,10 @@ mkfs.lustre --reformat --backfstype=zfs --fsname=lustre --ost ost/lustre --mgsno
 mount -t lustre ost/lustre /lustre/ost
 ```
 
-## Install Lustre on the clients
 
-```bash
-dnf update -y
-dnf groupinstall -y "Development Tools" 
-dnf config-manager -y --set-enabled crb
-dnf install -y keyutils keyutils-libs-devel libmount \
-                        libmount-devel libnl3-devel libnl3 libnl3-cli \
-                        libyaml libyaml-devel kernel-abi-stablelists kernel-rpm-macros \
-                        dkms expect python python-devel git
-git clone git://git.whamcloud.com/fs/lustre-release.git
-cd lustre-release
-./autogen.sh
-sed -i '/^SELINUX=/s/.*/SELINUX=disabled/' /etc/selinux/config 
-./configure --disable-server --enable-client
-make rpms
-dnf --skip-broken install -y *.$(uname -p).rpm
-```
 
 ## Setup the client
+
 
 Mount the MGS server on the client
 
