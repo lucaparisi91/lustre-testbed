@@ -6,7 +6,7 @@ Each VM has 15GB disk space.
 
 ## Setting up networking
 
-The network should be configured as static network
+The network should be configured as static network. For instance on the mgs one would use.
 
 ```bash
 nmcli con add type ethernet autoconnect yes con-name lustre_network  ifname enp0s1 ip4 192.168.64.17 gw4 192.168.64.1 ipv4.dns 192.168.64.1
@@ -16,8 +16,9 @@ ip | hostname
 -- | ---
 192.168.64.17 |  mgs/mdt
 192.168.64.18 |  oss
+192.168.64.19 |  client
 
-Set up passwordless ssh connections between the the two VMS and with the ost.
+Set up passwordless ssh connections between the the VMS and and host.
 ## Build ZFS on the servers
 
 ```bash
@@ -78,6 +79,27 @@ mount -t lustre ost/lustre /lustre/ost
 ## Install Lustre on the clients
 
 ```bash
-sudo rpm -ivh ./kmod-lustre-client-2.16.0_RC3-1.el9.aarch64.rpm
-#sudo rpm -ivh ./lustre-client-dkms-2.16.0_RC3-1.el9.noarch.rpm
+dnf update -y
+dnf groupinstall -y "Development Tools" 
+dnf config-manager -y --set-enabled crb
+dnf install -y keyutils keyutils-libs-devel libmount \
+                        libmount-devel libnl3-devel libnl3 libnl3-cli \
+                        libyaml libyaml-devel kernel-abi-stablelists kernel-rpm-macros \
+                        dkms expect python python-devel git
+git clone git://git.whamcloud.com/fs/lustre-release.git
+cd lustre-release
+./autogen.sh
+sed -i '/^SELINUX=/s/.*/SELINUX=disabled/' /etc/selinux/config 
+./configure --disable-server --enable-client
+make rpms
+dnf --skip-broken install -y *.$(uname -p).rpm
+```
+
+## Setup the client
+
+Mount the MGS server on the client
+
+```bash
+mkdir -p /lustre
+mount -t lustre 192.168.64.17@tcp0:/lustre /lustre
 ```
