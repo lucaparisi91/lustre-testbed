@@ -15,7 +15,9 @@ nmcli con add type ethernet autoconnect yes con-name lustre_network  ifname enp0
 ip | hostname
 -- | ---
 192.168.64.17 |  mgs/mdt
+192.168.64.18 |  oss
 
+Set up passwordless ssh connections between the the two VMS and with the ost.
 ## Build ZFS on the servers
 
 ```bash
@@ -51,6 +53,26 @@ sed -i '/^SELINUX=/s/.*/SELINUX=disabled/' /etc/selinux/config
 ./configure --disable-ldiskfs
 make rpms
 dnf --skip-broken install -y *.$(uname -p).rpm
+```
+
+# Setting up Lustre
+
+Create a combined mgt/mdt disk.
+
+On the mgs/mds server:
+
+```bash
+mkfs.lustre --reformat --backfstype=zfs --fsname=lustre --mgs --mdt mgt_mgs/lustre  /dev/vdb
+mount -t lustre mgt_mgs/lustre /lustre/mgt_mgs
+systemctl stop firewalld
+```
+
+On the oss server
+
+```bash
+systemctl stop firewalld
+mkfs.lustre --reformat --backfstype=zfs --fsname=lustre --ost ost/lustre --mgsnode=192.168.64.17@tpc0 --index=0  /dev/vdb
+mount -t lustre ost/lustre /lustre/ost
 ```
 
 ## Install Lustre on the clients
