@@ -103,3 +103,9 @@ Mount the MGS server on the client
 mkdir -p /lustre
 mount -t lustre 192.168.64.17@tcp0:/lustre /lustre
 ```
+
+To mount permanently add en entry to /etc/fstab
+
+```bash
+192.168.64.17@tcp0:/lustre      /lustre lustre  defaults        0       0
+```
